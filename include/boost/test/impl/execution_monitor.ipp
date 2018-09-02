@@ -35,6 +35,7 @@
 #ifndef BOOST_NO_EXCEPTIONS
 #include <boost/exception/get_error_info.hpp> // for get_error_info
 #include <boost/exception/current_exception_cast.hpp> // for current_exception_cast
+#include <boost/exception/diagnostic_information.hpp>
 #endif
 
 // STL
@@ -1227,14 +1228,14 @@ execution_monitor::execute( boost::function<int ()> const& F )
       { detail::report_error( execution_exception::cpp_exception_error,
                               "std::string: %s", ex.c_str() ); }
 
-    // boost::exception (before std::exception)
+    // boost::exception (before std::exception, with extended diagnostic)
     catch( boost::exception const& ex )
       { detail::report_error( execution_exception::cpp_exception_error,
                               &ex,
 #if defined(BOOST_NO_TYPEID) || defined(BOOST_NO_RTTI)
                               "unknown boost::exception" ); }
 #else
-                              typeid(ex).name()          ); }
+                              boost::diagnostic_information(ex).c_str() ); }
 #endif
 
     //  std:: exceptions
