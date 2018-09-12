@@ -17,8 +17,6 @@
 #include <boost/exception/exception.hpp>
 #include <boost/exception/info.hpp>
 
-
-// STL
 #include <iostream>
 #include <ios>
 
@@ -30,47 +28,36 @@ struct myexception : std::exception, virtual boost::exception
 {};
 
 // this one should generate a message as it does not execute any assertion
-void exception_raised()
-{
+void exception_raised() {
     BOOST_THROW_EXCEPTION( myexception() << error_code(123) );
 }
 
 struct output_test_stream2 : public output_test_stream {
-  std::string
-  get_stream_string_representation() const {
+  std::string get_stream_string_representation() const {
+      (void)const_cast<output_test_stream2*>(this)->output_test_stream::check_length(0, false); // to sync only!!
       return output_test_stream::get_stream_string_representation();
   }
 };
 
-
 BOOST_AUTO_TEST_CASE( test_logs )
 {
-#define PATTERN_FILE_NAME "log-formatter-test.pattern"
-#if 0
-    std::string pattern_file_name(
-        framework::master_test_suite().argc <= 1
-            ? (runtime_config::save_pattern() ? PATTERN_FILE_NAME : "./baseline-outputs/" PATTERN_FILE_NAME )
-            : framework::master_test_suite().argv[1] );
-#endif
-
-    output_test_stream2 test_output;/*( pattern_file_name,
-                                    !runtime_config::save_pattern(),
-                                    true,
-                                    __FILE__ );*/
-
     test_suite* ts_main = BOOST_TEST_SUITE( "fake master" );
     ts_main->add( BOOST_TEST_CASE( exception_raised ) );
 
+    output_test_stream2 test_output;
+
     ts_main->p_default_status.value = test_unit::RS_ENABLED;
     boost::unit_test::unit_test_log.set_stream(test_output);
+    boost::unit_test::unit_test_log.set_threshold_level( log_successful_tests );
 
     framework::finalize_setup_phase( ts_main->p_id );
     framework::run( ts_main->p_id, false ); // do not continue the test tree to have the test_log_start/end
 
     boost::unit_test::unit_test_log.set_stream(std::cout);
 
-    test_output.flush();
     std::string error_string(test_output.get_stream_string_representation());
-    std::cout << "blablabla " << error_string << std::endl;
+    //std::cout << "blablabla '" << error_string << "'" << std::endl;
+    //std::cout << "blablablaend" << std::endl;
     BOOST_TEST( error_string.find("[tag_error_code*] = 123") != std::string::npos );
+    BOOST_TEST( error_string.find("Dynamic exception type: boost::exception_detail::clone_impl<myexception>") != std::string::npos );
 }
